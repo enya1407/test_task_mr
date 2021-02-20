@@ -1,70 +1,107 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
-import { InputGroup, FormControl, Button } from 'react-bootstrap';
+import { InputGroup, FormControl, Button, Form } from 'react-bootstrap';
 import { filterByLength, filterBySubstring } from './utils.js';
+import getWords from './getWords';
 
 function App() {
-  const [value, setValue] = useState('');
+  const [inputValue, setInputValue] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [dataFromServer, setDataFromServer] = useState(null);
+  const [outputValue, setOutputValue] = useState(null);
+  const [checked, setChecked] = useState(false);
 
-  const handleClick = (pressedButton) => {
-    if (!value.trim().length) {
+  useEffect(() => {
+    async function fetchData() {
+      const data = await getWords();
+      setDataFromServer(data);
+    }
+    fetchData();
+  }, []);
+
+  const handleLengthFilterClick = useCallback(() => {
+    if (!inputValue.trim().length) {
+      setOutputValue('');
       setErrorMessage("You haven't entered anything");
-    } else if (
-      value.match('^[A-z]+$') &&
-      pressedButton === 'filter-substring'
-    ) {
+    } else if (!isNaN(inputValue)) {
       setErrorMessage('');
-      filterBySubstring(value);
-    } else if (!isNaN(value) && pressedButton === 'filter-length') {
-      setErrorMessage('');
-      filterByLength(value);
+      setOutputValue(filterByLength(inputValue, dataFromServer));
     } else {
-      console.log(
-        setErrorMessage(
-          'Error! Enter the numbers and click on "By length" or enter a string and click "By substring"'
-        )
+      setOutputValue('');
+      setErrorMessage(
+        'Error! Enter the numbers and click on "By length" or enter a string and click "By substring"'
       );
     }
-  };
+  }, [dataFromServer, inputValue]);
+
+  const handleSubstringFilterClick = useCallback(() => {
+    if (!inputValue.trim().length) {
+      setOutputValue('');
+      setErrorMessage("You haven't entered anything");
+    } else if (inputValue.match(/^[A-z\s]+$/)) {
+      setErrorMessage('');
+      setOutputValue(filterBySubstring(inputValue, dataFromServer, checked));
+    } else {
+      setOutputValue('');
+      setErrorMessage(
+        'Error! Enter the numbers and click on "By length" or enter a string and click "By substring"'
+      );
+    }
+  }, [dataFromServer, inputValue, checked]);
+
+  const handleCheckboxClick = useCallback(
+    (e) => setChecked(e.target.checked),
+    []
+  );
+  const handleInputChange = useCallback(
+    (e) => setInputValue(e.target.value),
+    []
+  );
 
   return (
     <div className="App">
       <div className="wrapper">
         <InputGroup className="input-field">
+          <InputGroup.Prepend>
+            <InputGroup.Checkbox
+              className="output-field"
+              aria-label="Checkbox for following text input"
+              onChange={handleCheckboxClick}
+              checked={checked}
+            />
+          </InputGroup.Prepend>
           <FormControl
-            onChange={(e) => setValue(e.target.value)}
+            onChange={handleInputChange}
             placeholder="Input field"
-            value={value}
+            value={inputValue}
           />
           <InputGroup.Append>
             <Button
+              disabled={!dataFromServer}
               variant="outline-secondary"
-              onClick={() => {
-                handleClick('filter-length');
-              }}
+              onClick={handleLengthFilterClick}
               className="filter-length"
             >
               By length
             </Button>
             <Button
+              disabled={!dataFromServer}
               variant="outline-secondary"
-              onClick={() => {
-                handleClick('filter-substring');
-              }}
+              onClick={handleSubstringFilterClick}
               className="filter-substring"
             >
               By substring
             </Button>
           </InputGroup.Append>
         </InputGroup>
-
-        <InputGroup className="output-field">
-          <InputGroup.Prepend>
-            <InputGroup.Checkbox aria-label="Checkbox for following text input" />
-          </InputGroup.Prepend>
-          <FormControl placeholder="Output field" />
-        </InputGroup>
+        <Form.Control
+          className="output-field"
+          as="textarea"
+          placeholder="Output field"
+          rows={10}
+          value={outputValue === null ? '' : outputValue || 'no results'}
+          disabled
+        />
         <span className="error-message">{errorMessage}</span>
       </div>
     </div>

@@ -1,13 +1,15 @@
-import getWords from './getWords';
-const filterBySubstring = (value) => {
-  console.log('substring', value);
-
-  return value;
+const filterBySubstring = (inputValue, data, checked) => {
+  console.log(checked);
+  return checked
+    ? data.filter((el) => el.includes(inputValue.trim())).join(', ')
+    : data
+        .filter((el) =>
+          el.toLowerCase().includes(inputValue.trim().toLowerCase())
+        )
+        .join(', ');
 };
 
-const filterByLength = (value) => {
-  console.log('length', value);
-  return value;
-};
+const filterByLength = (inputValue, data) =>
+  data.filter((el) => el.length > inputValue).join(', ');
 
 export { filterBySubstring, filterByLength };
